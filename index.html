@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campeonato de Futebol</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Campeonato de Futebol</h1>
+    <section id="cadastro">
+      <h2>Cadastrar Time</h2>
+      <form id="form-time">
+        <input type="text" id="nome-time" placeholder="Nome do Time" required>
+        <div id="jogadores-area">
+          <input type="text" class="jogador-nome" placeholder="Nome do Jogador" required>
+          <input type="number" class="jogador-camisa" placeholder="Nº da Camisa" required>
+        </div>
+        <button type="button" id="add-jogador">Adicionar Jogador</button>
+        <button type="submit">Cadastrar Time</button>
+      </form>
+      <div id="times-list"></div>
+    </section>
+    <section id="partida">
+      <h2>Iniciar Partida</h2>
+      <form id="form-partida">
+        <select id="time1" required></select>
+        <select id="time2" required></select>
+        <button type="submit">Iniciar</button>
+      </form>
+      <div id="partida-area" style="display:none;">
+        <div id="cronometro">08:00</div>
+        <div id="placar"></div>
+        <form id="form-gol">
+          <select id="gol-time" required></select>
+          <select id="gol-jogador" required></select>
+          <button type="submit">Registrar Gol</button>
+        </form>
+        <div id="gols-list"></div>
+      </div>
+      <div id="resultado-partida"></div>
+    </section>
+    <section id="historico">
+      <h2>Partidas Realizadas</h2>
+      <div id="partidas-list"></div>
+      <h2>Artilheiros</h2>
+      <div id="artilheiros-list"></div>
+    </section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
