@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Criar Time - Campo</title>
+<style>
+  :root{ --bg:#182848; --campo:#2d683f; --linha:#ffffffcc; --pos-bg:#26c281; --pos-filled:#1f6fb0; }
+  body{ font-family: Arial, Helvetica, sans-serif; background:#0f2238; color:#fff; margin:0; padding:20px; display:flex; justify-content:center; }
+  .container{ width:640px; max-width:95vw; background:var(--bg); padding:18px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.6); }
+  h1{ text-align:center; margin:0 0 14px 0; color:#fff; font-size:20px; }
+  .campo-container{ position:relative; width:100%; aspect-ratio:3/4; border-radius:8px; overflow:hidden; background:var(--campo); border:6px solid rgba(255,255,255,0.06); }
+  canvas{ display:block; width:100%; height:100%; }
+  #posicoes{ position:absolute; inset:0; pointer-events:auto; }
+  .posicao{
+    position:absolute;
+    width:64px;height:64px;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    box-shadow:0 6px 0 rgba(0,0,0,0.25);
+    cursor:pointer;
+    transition:all .18s ease;
+    border:3px solid rgba(0,0,0,0.12);
+  }
+  .posicao:hover{ transform:translate(-50%,-52%); }
+  .posicao img{ width:28px;height:28px; pointer-events:none; user-select:none; }
+  .posicao.preenchido{
+    background:var(--pos-filled); color:#fff; font-weight:700; font-size:16px;
+    box-shadow:0 8px 0 rgba(0,0,0,0.35);
+  }
+  .mensagem{ text-align:center; margin-top:12px; min-height:20px; color:#fff; }
+  form#time-form { margin-top: 16px; }
+  input[type="text"]{ width:100%; padding:8px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:#123; color:#fff; }
+  .btn { padding:8px 12px; border-radius:6px; border:none; cursor:pointer; }
+  .btn.ok{ background:#2c9; color:#012; font-weight:700; width:100%; padding:12px; margin-top:10px; }
+  /* modal */
+  .modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:60; }
+  .modal .card{ background:var(--bg); padding:16px; border-radius:8px; width:320px; max-width:92%; }
+  .modal input{ width:100%; padding:8px 10px; margin:8px 0; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:#123; color:#fff; }
+  .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+  .btn.cancel{ background:#444; color:#fff; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Criar Time — Escalação (6 posições)</h1>
+
+    <div class="campo-container" id="campo-wrap">
+      <canvas id="campo"></canvas>
+      <div id="posicoes" aria-hidden="false"></div>
+    </div>
+
+    <div id="lista-jogadores"></div>
+    <div class="mensagem" id="mensagem"></div>
+
+    <form id="time-form">
+      <input type="text" id="nome-time" placeholder="Nome do Time" required />
+      <button type="submit" class="btn ok">Criar Time e Voltar</button>
+    </form>
+
+    <!-- Modal -->
+    <div id="modal" class="modal" role="dialog" aria-modal="true">
+      <div class="card">
+        <h3 style="margin:0 0 8px 0;">Adicionar Jogador</h3>
+        <input id="modal-nome" placeholder="Nome do jogador" />
+        <input id="modal-camisa" type="number" placeholder="Nº da camisa (1-99)" min="1" max="99" />
+        <div class="actions">
+          <button class="btn cancel" id="modal-cancel" type="button">Cancelar</button>
+          <button class="btn ok" id="modal-confirm" type="button">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('campo');
+const ctx = canvas.getContext('2d');
+const posicoesContainer = document.getElementById('posicoes');
+const modal = document.getElementById('modal');
+const modalNome = document.getElementById('modal-nome');
+const modalCamisa = document.getElementById('modal-camisa');
+const modalCancel = document.getElementById('modal-cancel');
+const modalConfirm = document.getElementById('modal-confirm');
+const mensagemDiv = document.getElementById('mensagem');
+const listaJogadoresDiv = document.getElementById('lista-jogadores');
+
+let posicaoAtual = null;
+let jogadores = [null, null, null, null, null, null]; // 6 posições
+
+const posicoes = [
+  { x:50, y:90, role:'GOL' },
+  { x:40, y:70, role:'ZAG' },
+  { x:60, y:70, role:'ZAG' },
+  { x:25, y:32, role:'ATA' },
+  { x:50, y:28, role:'ATA' },
+  { x:75, y:32, role:'ATA' }
+];
+
+const addIconSrc = 'icon.png';
+
+// canvas/responsive
+function setupCanvas(){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  desenharCampo(rect.width, rect.height);
+  criarPosicoes();
+}
+function desenharCampo(width, height){
+  ctx.clearRect(0,0,width,height);
+  const stripes = 6;
+  for(let i=0;i<stripes;i++){
+    ctx.fillStyle = i%2===0 ? '#2d683f' : '#2b663b';
+    ctx.fillRect(0, (i/stripes)*height, width, height/stripes);
+  }
+  ctx.strokeStyle = '#ffffffcc';
+  ctx.lineWidth = 4;
+  roundRect(ctx, 6, 6, width-12, height-12, 8, false, true);
+
+  // linha central HORIZONTAL
+  ctx.beginPath();
+  ctx.moveTo(12, height/2);
+  ctx.lineTo(width - 12, height/2);
+  ctx.stroke();
+
+  // círculo central
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+  ctx.arc(width/2, height/2, Math.min(width,height)*0.085, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(width/2, height/2, 2, 0, Math.PI*2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  // área adversária topo
+  const areaW = width*0.36;
+  const areaH = height*0.12;
+  ctx.beginPath(); ctx.rect((width-areaW)/2, 12, areaW, areaH); ctx.stroke();
+  const boxW = width*0.18; const boxH = height*0.06;
+  ctx.beginPath(); ctx.rect((width-boxW)/2, 12, boxW, boxH); ctx.stroke();
+  ctx.beginPath(); ctx.arc(width/2, 12 + areaH + 12, 2.5, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+
+  // área inferior (seu gol)
+  ctx.beginPath(); ctx.rect((width-areaW)/2, height - areaH - 12, areaW, areaH); ctx.stroke();
+  ctx.beginPath(); ctx.rect((width-boxW)/2, height - boxH - 12, boxW, boxH); ctx.stroke();
+  ctx.beginPath(); ctx.arc(width/2, height - areaH - 12 - 12, 2.5, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+}
+function roundRect(ctx, x, y, w, h, r, fill, stroke){
+  if (typeof r === 'undefined') r = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+function criarPosicoes(){
+  posicoesContainer.innerHTML = '';
+  posicoes.forEach((p, idx) => {
+    const div = document.createElement('div');
+    div.className = 'posicao';
+    div.style.left = p.x + '%';
+    div.style.top = p.y + '%';
+    div.title = `${p.role} - posição ${idx+1}`;
+
+    if (jogadores[idx]){
+      div.classList.add('preenchido');
+      div.textContent = jogadores[idx].camisa;
+    } else {
+      const img = document.createElement('img');
+      img.src = addIconSrc;
+      img.alt = 'Adicionar';
+      div.appendChild(img);
+    }
+
+    div.onclick = () => abrirModal(idx);
+    posicoesContainer.appendChild(div);
+  });
+
+  atualizarListaJogadores();
+}
+
+function abrirModal(index){
+  posicaoAtual = index;
+  modalNome.value = jogadores[index]?.nome ?? '';
+  modalCamisa.value = jogadores[index]?.camisa ?? '';
+  modal.style.display = 'flex';
+  modalNome.focus();
+}
+function fecharModal(){
+  modal.style.display = 'none';
+  posicaoAtual = null;
+}
+modalCancel.onclick = fecharModal;
+window.addEventListener('keydown', (e) => { if(e.key==='Escape') fecharModal(); });
+
+modalConfirm.onclick = () => {
+  const nome = modalNome.value.trim();
+  const camisa = modalCamisa.value.trim();
+  if(!nome || !camisa){
+    mostrarMensagem('Preencha nome e nº da camisa', true);
+    return;
+  }
+  if (jogadores.some((j, i) => j && j.camisa === camisa && i !== posicaoAtual)){
+    mostrarMensagem('Número de camisa já utilizado em outra posição', true);
+    return;
+  }
+  jogadores[posicaoAtual] = { nome, camisa };
+  fecharModal();
+  criarPosicoes();
+  mostrarMensagem('Jogador adicionado', false);
+};
+
+let msgTimer = null;
+function mostrarMensagem(txt, isError){
+  mensagemDiv.textContent = txt;
+  mensagemDiv.style.color = isError ? '#ff6b6b' : '#51cf66';
+  if(msgTimer) clearTimeout(msgTimer);
+  msgTimer = setTimeout(()=>{ mensagemDiv.textContent=''; }, 2500);
+}
+
+function atualizarListaJogadores(){
+  const lista = jogadores
+    .map((j, idx) => j ? `${idx+1}. ${j.nome} (${j.camisa}) - ${posicoes[idx].role}` : null)
+    .filter(Boolean);
+  if(lista.length){
+    listaJogadoresDiv.innerHTML = '<strong>Escalação:</strong><br>' + lista.join('<br>');
+  } else {
+    listaJogadoresDiv.innerHTML = '';
+  }
+}
+
+// quando enviar o formulário do time
+const timeForm = document.getElementById('time-form');
+timeForm.onsubmit = (e) => {
+    e.preventDefault();
+    const nomeTime = document.getElementById('nome-time').value.trim();
+    if (!nomeTime) { mostrarMensagem('Digite o nome do time', true); return; }
+    if (jogadores.some(j => j === null)) {
+        mostrarMensagem('Preencha todas as 6 posições antes de criar o time', true);
+        return;
+    }
+    const times = JSON.parse(localStorage.getItem('times') || '[]');
+    if (times.some(t => t.nome === nomeTime)) {
+        mostrarMensagem('Este nome de time já existe', true);
+        return;
+    }
+    const novoTime = { nome: nomeTime, jogadores: jogadores.map(j => ({ nome: j.nome, camisa: j.camisa })) };
+    times.push(novoTime);
+    localStorage.setItem('times', JSON.stringify(times));
+
+    // inicializa artilheiros se não existirem
+    const artilheiros = JSON.parse(localStorage.getItem('artilheiros') || '{}');
+    jogadores.forEach(j => { if (!(j.nome in artilheiros)) artilheiros[j.nome] = 0; });
+    localStorage.setItem('artilheiros', JSON.stringify(artilheiros));
+
+    mostrarMensagem('Time criado com sucesso! Voltando...', false);
+    setTimeout(() => { window.location.href = 'index.html'; }, 800);
+};
+
+// inicialização
+window.addEventListener('resize', setupCanvas);
+window.addEventListener('load', setupCanvas);
+
+// testa se icon existe
+const testImg = new Image();
+testImg.src = addIconSrc;
+testImg.onerror = () => { console.warn('icon.png não encontrado no mesmo diretório. Coloque icon.png na mesma pasta do HTML.'); };
+
+// debug
+window.__jogadores = jogadores;
+</script>
+</body>
+</html>

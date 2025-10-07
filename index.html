@@ -5,22 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Campeonato de Futebol</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    :root { --bg:#182848; --primary:#3a7bd5; --success:#51cf66; --error:#ff6b6b; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .times-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .btn-criar-time { background: var(--primary); color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; }
+    .times-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .time-card { background: var(--bg); padding: 16px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .time-card h3 { margin: 0 0 10px 0; color: var(--primary); }
+    .time-card ul { list-style: none; padding: 0; margin: 0; }
+    .time-card li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .time-card li:last-child { border: none; }
+    
+    #form-partida { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 20px; }
+    #form-partida select { padding: 8px; border-radius: 4px; background: var(--bg); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    #form-partida button { background: var(--primary); color: #fff; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+    
+    #partida-area { background: var(--bg); padding: 20px; border-radius: 8px; margin-top: 20px; }
+    #cronometro { font-size: 2em; text-align: center; margin-bottom: 10px; }
+    #placar { font-size: 1.5em; text-align: center; margin-bottom: 20px; }
+    
+    #form-gol { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; }
+    #gols-list { margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; }
+    
+    .section-header { margin: 30px 0 15px; padding-bottom: 8px; border-bottom: 2px solid var(--primary); }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>Campeonato de Futebol</h1>
-    <section id="cadastro">
-      <h2>Cadastrar Time</h2>
-      <form id="form-time">
-        <input type="text" id="nome-time" placeholder="Nome do Time" required>
-        <div id="jogadores-area">
-          <input type="text" class="jogador-nome" placeholder="Nome do Jogador" required>
-          <input type="number" class="jogador-camisa" placeholder="Nº da Camisa" required>
-        </div>
-        <button type="button" id="add-jogador">Adicionar Jogador</button>
-        <button type="submit">Cadastrar Time</button>
-      </form>
-      <div id="times-list"></div>
+    <section id="times">
+      <div class="times-header">
+        <h2 class="section-header">Times Cadastrados</h2>
+        <a href="criartime.html" class="btn-criar-time">+ Criar Novo Time</a>
+      </div>
+      <div id="times-list" class="times-grid"></div>
     </section>
     <section id="partida">
       <h2>Iniciar Partida</h2>

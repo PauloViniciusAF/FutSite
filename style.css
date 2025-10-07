@@ -4,6 +4,26 @@ body {
   font-family: 'Segoe UI', Arial, sans-serif;
   margin: 0;
 }
+
+.times-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-criar-time {
+  background: #3a7bd5;
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.btn-criar-time:hover {
+  background: #1e5799;
+}
 .container {
   max-width: 400px;
   margin: auto;
